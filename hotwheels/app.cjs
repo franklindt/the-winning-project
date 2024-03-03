@@ -19,7 +19,7 @@ const port = 3000
 //   })
 // }
 
-app.get('/', (req, res) => {
+app.get('/named', (req, res) => {
   var start, end;
   axios({
     method:"get",
@@ -98,6 +98,88 @@ app.get('/', (req, res) => {
   })
 })
 
+
+
+
+
+
+
+
+
+
+
+app.get('/', (req, res) => {
+    start = {latitude: req.query.start.latitude, longitude: req.query.start.longitude};
+    end = {latitude: req.query.start.latitude, longitude: req.query.start.longitude};
+
+
+
+
+    var distance = Math.sqrt((start.latitude-end.latitude)**2+(start.longitude-end.longitude)**2)
+    if (start.latitude > end.latitude) {var temp = start.latitude; start.latitude = end.latitude; end.latitude = temp}
+    if (start.longitude > end.longitude) {var temp = start.longitude; start.longitude = end.longitude; end.longitude = temp}
+
+
+    var roads = {};
+    var promises = [];
+
+    for (var i = 0;i < distance; i+=0.013) {
+      // console.log(start.latitude+(i*Math.sqrt(1-((end.longitude-start.longitude)/distance)**2)));
+      promises.push(
+        axios({
+          method: "get",
+          url:"http://api.geonames.org/findNearbyStreetsOSMJSON?",
+          params: {
+            lat: start.latitude+(i*Math.sqrt(1-((end.longitude-start.longitude)/distance)**2)),
+            lng: start.longitude+(i*Math.sqrt(1-((end.latitude-start.latitude)/distance)**2)),
+            username: process.env.GEONAMES_USERNAME
+          }
+        }).then((response) => {
+          console.log(response.data.streetSegment)
+          if (response.data.streetSegment != null && response.data.streetSegment != undefined) {
+            for (var j = 0; j < response.data.streetSegment.length; j++) {
+              exists = false;
+              for (var name in roads) { // simply iterate over the keys in the first object
+                  if (Object.hasOwnProperty.call(response.data.streetSegment[j].name, name)) { // and check if the key is in the other object, too
+                      exists = true;
+                      break;
+                  }
+              }
+
+              if (!exists) {
+                temporary = response.data.streetSegment[j].line.split(',')[0];
+                roads[response.data.streetSegment[j].name] = {latitude: parseFloat(temporary.split(' ')[0]), longitude: parseFloat(temporary.split(' ')[1])}
+              }
+            }
+          }
+        })
+      )
+    }
+
+    Promise.all(promises).then(() => res.send(roads));
+
+
+
+
+
+
+
+
+
+})
+
 app.listen(port, () => {
   console.log(`hotwheels listening on port ${port}`)
 })
+
+
+
+
+
+
+app.listen(port, () => {
+  console.log(`hotwheels listening on port ${port}`)
+})
+
+
+
