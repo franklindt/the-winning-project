@@ -15,7 +15,7 @@ with open("temp.txt", "r") as files2:     #File 2
 
 
 features = data[0]['features']
-wanted_list = ['Intersection']
+wanted_list = ['Intersection','Offence_Category']
 
 unique = []
 unique2 = []
