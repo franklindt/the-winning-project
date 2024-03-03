@@ -19,6 +19,21 @@ def get_json():
 
 
 
+
+# Catching 404 and 500 Errors 
+
+@app.errorhandler(404)
+def error_404(error):
+    return jsonify({'error': 'Not Found: {}'.format(error)}),404
+
+@app.errorhandler(500)
+def error_500(error):
+    return jsonify({'error': 'Not Found: {}'.format(error)}),500
+
+
+
+
+
 if __name__ == "__main__ " :
     app.run(debug=True)
 
