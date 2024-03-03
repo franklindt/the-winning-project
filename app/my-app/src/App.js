@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { GoogleMap, LoadScript , Polyline , StandaloneSearchBox, Marker } from '@react-google-maps/api';
 import './App.css';
 import { getDistance } from 'geolib';
 import axios from 'axios';
-
+const libraries = ["places"];
 const containerStyle = {
   width: '100%',
   height: '400px'
@@ -16,7 +16,9 @@ const center = {
 
 function App() {
 
-  const [searchBox, setSearchBox] = useState(null);
+const startBox = useRef(null);
+const endBox = useRef(null);
+
 
   const onMapClick = event => {
     const geocoder = new window.google.maps.Geocoder();
@@ -35,27 +37,100 @@ function App() {
   
     setMarkers(current => [...current, { lat: event.latLng.lat(), lng: event.latLng.lng() }]);
   };
-
-  const onPlacesChanged = () => {
-    const places = searchBox.getPlaces();
+  var adj_array = {};
+  var pathCoordinates;
+  const onPlacesChanged = (box) => {
+    const places = box.current.getPlaces();
+    console.log(box.current.getPlaces());
+    if (start1===null || start1 === undefined) {
+      setStart1(places[0].name);
+      console.log("LOL" +start1);
+    }
+    setEnd1(places[0].name);
+    console.log("NOP" + end1);
+    // console.log("this is places: !!!!!!!!!!!!!!" , places[0].name);
     const location = places[0].geometry.location;
     setMarkers(current => [...current, { lat: location.lat(), lng: location.lng() }]);
   
     if (markers.length === 2) {
+      // console.log(markers[1]);
       const start = markers[0];
-      const end = { lat: location.lat(), lng: location.lng() };
-  
-      axios.get('127.0.0.1/:3000', { start, end })
+      const end = markers[1];
+      console.log(start, end);
+      console.log("reached")
+      axios({
+        method:"get",
+        url:"http://localhost:2000",
+        params: {
+          start: start1,
+          start_lat: start.lat,
+          start_lng: start.lng,
+          end: end1,
+          end_lat: end.lat,
+          end_lng: end.lng
+        
+      }})
         .then(response => {
-          console.log(response.data);
+          // var neighbours = {}
+
+          // var blah = 10000000000000000000;
+
+
+          for (const [key, value] of Object.entries(response.data)) {
+            var neighbors = {};
+            for (const [key1, value1] of Object.entries(response.data)) {
+              if (key === key1) {
+                continue
+              }
+              if (Math.abs(value.latitude-value1.latitude) <= 0.1 && Math.abs(value.longitude-value1.longitude) <= 0.1) {
+                var distance = Math.sqrt((value.latitude-value1.latitude)**2+(value.longitude-value1.longitude)**2)
+                neighbors[key1] = distance;
+              } 
+            }
+            adj_array[key] = neighbors;
+            adj_array["Toronto"] = neighbors;
+            adj_array["Markham"] = neighbors;
+            // console.log(adj_array[key], key);
+          }
+
+
+          // adj_array[end1] = {coordinates: {latitude: end.lat, longitude: end.lng}, neighbors: neighbours}
+
+          // neighbours = {};
+          // blah = 1000000000000000
+          // for (const [key1, value1] of Object.entries(response.data)) {
+          //   if (start1 === key1) {
+          //     continue
+          //   }
+          //   if (Math.abs(Math.abs(start.lat)-Math.abs(value1.latitude))**2 + Math.abs(Math.abs(start.lng)-Math.abs(value1.longitude))**2 < blah**2) {
+          //     console.log("hasta la vista")
+          //     blah = Math.abs(Math.abs(start.lat)-Math.abs(value1.latitude))**2 + Math.abs(Math.abs(start.lng)-Math.abs(value1.longitude)**2)
+          //     neighbours = {}
+          //     var distance = Math.sqrt((start.lat-value1.latitude)**2+(start.lng-value1.longitude)**2)
+          //     neighbours[key1] = distance
+          //   }
+          // }
+
+          // adj_array[start1] = {coordinates: {latitude: start.lat, longitude: start.lng}, neighbors: neighbours}
+
+          // console.log("UIEGROGBOWRB"+start1+end1)
+          const result = dijkstra(adj_array, start1, end1);
+          console.log(result);
+          const shortestPath = getPath(result.previous, end1);
+          console.log(shortestPath);
+          pathCoordinates = [[start.lat, start.lng], [Math.random(end.lat, start.lat)*100, Math.random(end.lng, start.lng)*100], [Math.random(end.lat, start.lat)*100, Math.random(end.lng, start.lng)*100], [Math.random(end.lat, start.lat)*100, Math.random(end.lng, start.lng)*100], [Math.random(end.lat, start.lat)*100, Math.random(end.lng, start.lng)*100], [Math.random(end.lat, start.lat)*100, Math.random(end.lng, start.lng)*100], [end.lat, end.lng]];
+          
+          console.log(pathCoordinates);
+          //console.log(result, pathCoordinates);
+          return adj_array;
         })
         .catch(error => {
           console.error(error);
         });
     }
+    
   };
 
-  const onLoad = ref => setSearchBox(ref);
 
   const resetLocations = () => setMarkers([]);
 
@@ -75,137 +150,115 @@ function App() {
 
   class PriorityQueue {
     constructor() {
-        this.queue = [];
+      this.queue = [];
     }
-
-    // method to add an element to the queue with priority
-    enqueue(element, priority) {
-        this.queue.push({element, priority});
-        this.queue.sort((a, b) => a.priority - b.priority);
-    }
-
-    // method to remove an element from the queue
-    dequeue() {
-        return this.queue.shift();
-    }
-
-    // method to check if the queue is empty
-    isEmpty() {
-        return !this.queue.length;
-    }
-}
-
-function dijkstra(graph, start, destination) {
-    const distances = {};
-    const previous = {};
-    const queue = new PriorityQueue();
-
-    // Initialize distances and previous nodes
-    for (let node in graph) {
-        distances[node] = Infinity;
-        previous[node] = null;
-    }
-    distances[start] = 0;
-
-    // Enqueue the start node with priority 0
-    queue.enqueue(start, 0);
-
-    while (!queue.isEmpty()) {
-        const currentNode = queue.dequeue().element;
-
-        if (currentNode === destination) {
+  
+    enqueue(item, priority) {
+      const node = { item, priority };
+      if (this.isEmpty()) {
+        // If the queue is empty, add the node to the queue
+        this.queue.push(node);
+      } else {
+        // If the queue is not empty, find the correct position to insert the node
+        let added = false;
+        for (let i = 0; i < this.queue.length; i++) {
+          if (priority < this.queue[i].priority) {
+            this.queue.splice(i, 0, node);
+            added = true;
             break;
-        }
-
-        for (let neighbor in graph[currentNode].neighbors) {
-          const weight = graph[currentNode].neighbors[neighbor].distance;
-          const distance = distances[currentNode] + weight;
-      
-          if (distance < distances[neighbor]) {
-              distances[neighbor] = distance;
-              previous[neighbor] = currentNode;
-              queue.enqueue(neighbor, distance);
           }
+        }
+        // If the node has not been added, it has the lowest priority and is added at the end of the queue
+        if (!added) {
+          this.queue.push(node);
+        }
       }
     }
+  
+    dequeue() {
+      if (this.isEmpty()) {
+        throw new Error('Queue is empty');
+      }
+      return this.queue.shift().item;
+    }
+  
+    peek() {
+      if (this.isEmpty()) {
+        throw new Error('Queue is empty');
+      }
+      return this.queue[0].item;
+    }
+  
+    isEmpty() {
+      return this.queue.length === 0;
+    }
+  }
 
-    return {
-        distances,
-        previous
-    };
+function dijkstra(graph, startNode, endNode) {
+  let distances = {};
+  let previous = {};
+  let queue = new PriorityQueue();
+
+  // Set distances to all nodes to be infinite except startNode
+  for(let node in graph) {
+      distances[node] = Infinity;
+      previous[node] = null;
+  }
+  graph[startNode][endNode] = 100;
+  graph[endNode][startNode] = 100;
+  distances[startNode] = 0;
+  console.log("lol" + graph[startNode]);
+
+  queue.enqueue(startNode, 0);
+
+  while(!queue.isEmpty()) {
+      let shortestDistanceNode = queue.dequeue();
+      console.log(graph[shortestDistanceNode]);
+      console.log("BDJHD" + graph[startNode][0]);
+      for(let neighbor in graph[shortestDistanceNode]) {
+          let distanceThroughNode = distances[shortestDistanceNode] + graph[shortestDistanceNode][neighbor];
+          console.log("Blah" + graph[shortestDistanceNode][neighbor]);
+
+          if (shortestDistanceNode === endNode) {
+            distances[neighbor] = distanceThroughNode;
+              previous[neighbor] = shortestDistanceNode;
+              break;
+          }
+          if(distanceThroughNode < distances[neighbor]) {
+              distances[neighbor] = distanceThroughNode;
+              previous[neighbor] = shortestDistanceNode;
+              queue.enqueue(neighbor, distances[neighbor]);
+          }
+      }
+  }
+
+  return { distances, previous };
 }
 
-function getPath(previous, destination, graph) {
-  const path = [];
-  let current = destination;
+function getPath(previous, endNode) {
+  let path = [];
+  let currentNode = endNode;
 
-  while (current !== null) {
-    if (graph[current]) {
-      path.unshift(graph[current].coordinates);
-      current = previous[current];
-    } else {
-      console.error(`Node ${current} is not in the graph`);
-      break;
-    }
+  while(currentNode !== null) {
+      path.unshift(currentNode);
+      currentNode = previous[currentNode];
   }
 
   return path;
 }
-// Example usage
-const graph = {
-  1: { 
-      coordinates: { lat: 40.7128, lng: -74.0060 },
-      neighbors: { 
-          2: { distance: 5, coordinates: { lat: 51.5074, lng: -0.1278 } }, 
-          3: { distance: 2, coordinates: { lat: 34.0522, lng: -118.2437 } } 
-      }
-  },
-  2: { 
-      coordinates: { lat: 51.5074, lng: -0.1278 },
-      neighbors: { 
-          1: { distance: 5, coordinates: { lat: 40.7128, lng: -74.0060 } }, 
-          3: { distance: 1, coordinates: { lat: 34.0522, lng: -118.2437 } }, 
-          4: { distance: 3, coordinates: { lat: 35.6895, lng: 139.6917 } } 
-      }
-  },
-  3: { 
-      coordinates: { lat: 34.0522, lng: -118.2437 },
-      neighbors: { 
-          1: { distance: 2, coordinates: { lat: 40.7128, lng: -74.0060 } }, 
-          2: { distance: 1, coordinates: { lat: 51.5074, lng: -0.1278 } }, 
-          4: { distance: 2, coordinates: { lat: 35.6895, lng: 139.6917 } } 
-      }
-  },
-  4: { 
-      coordinates: { lat: 35.6895, lng: 139.6917 },
-      neighbors: { 
-          2: { distance: 3, coordinates: { lat: 51.5074, lng: -0.1278 } }, 
-          3: { distance: 2, coordinates: { lat: 34.0522, lng: -118.2437 } }, 
-          5: { distance: 4, coordinates: { lat: 48.8566, lng: 2.3522 } } 
-      }
-  },
-  5: { 
-      coordinates: { lat: 48.8566, lng: 2.3522 },
-      neighbors: { 
-          4: { distance: 4, coordinates: { lat: 35.6895, lng: 139.6917 } } 
-      }
-  }
-};
 
-const startNode = 1;
-const destinationNode = 5;
 
-const result = dijkstra(graph, startNode, destinationNode);
+/*const result = dijkstra(response.data, startLocation, endLocation);
 console.log('Result from dijkstra:', result);
 
-const shortestPath = getPath(result.previous, destinationNode, graph);
+const shortestPath = getPath(result.previous, endLocation, response.data);
 console.log('Shortest Path:', shortestPath);
 
-const totalWeight = result.distances[destinationNode];
+const totalWeight = result.distances[endLocation];
 console.log('Total Weight:', totalWeight);
 
 const pathCoordinates = shortestPath.map(node => ({ lat: node.lat, lng: node.lng }));
- // Coordinates for New York City
+ // Coordinates for New York City*/
 const containerStyle = {
   width: '100vw',
   height: '100vh'
@@ -213,6 +266,8 @@ const containerStyle = {
 const [startLocation, setStartLocation] = useState(null);
 const [endLocation, setEndLocation] = useState(null);
 const [markers, setMarkers] = useState([]);
+const [start1, setStart1] = useState(null);
+const [end1, setEnd1] = useState(null);
 
 let zoom = 10; // Default zoom level
 
@@ -285,23 +340,25 @@ if (startLocation && endLocation) {
     </LoadScript>
   </div>*/
   <div className='App'>
-      <LoadScript googleMapsApiKey="AIzaSyA29P_0zghPIM_WkO10guIwiV1R9PdyDPA" libraries={["places"]}>
+      <LoadScript googleMapsApiKey="AIzaSyA29P_0zghPIM_WkO10guIwiV1R9PdyDPA" libraries={libraries}>
         <div className='controls'>
-        <StandaloneSearchBox onLoad={onLoad} onPlacesChanged={onPlacesChanged}>
-          <input type="text" placeholder="Enter a location" />
+        <StandaloneSearchBox onLoad={ref => startBox.current = ref} onPlacesChanged={() => onPlacesChanged(startBox)}>
+          <input type="text" placeholder="Enter Start Point" />
         </StandaloneSearchBox>
-
+        <StandaloneSearchBox onLoad={ref => endBox.current = ref} onPlacesChanged={() => onPlacesChanged(endBox)}>
+          <input type="text" placeholder="Enter Destination" />
+        </StandaloneSearchBox>
         <button onClick={resetLocations}>Reset</button>
         </div>
         <GoogleMap className="GoogleMap"
           mapContainerStyle={containerStyle}
           center={markers.length > 0 ? markers[0] : center}
-          zoom={10}
+          zoom={zoom}
           onClick={onMapClick}
         >
           {markers.length >= 2 && (
             <Polyline
-              path={markers}
+              path={pathCoordinates}
               options={{ strokeColor: "black", strokeWeight: "2", strokeOpacity: "1", geodesic: "true"}}
             />
           )}

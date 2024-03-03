@@ -138,7 +138,9 @@ app.get('/named', (req, res) => {
         )
       }
 
-      Promise.all(promises).then(() => res.send(roads));
+      Promise.all(promises).then(() => {
+        res.send(roads)
+      });
 
 
 
@@ -168,6 +170,8 @@ app.get('/', (req, res) => {
 
     console.log(start)
     console.log(end)
+    console.log(req.query.start)
+    console.log(req.query.end)
 
 
     var distance = Math.sqrt((start.latitude-end.latitude)**2+(start.longitude-end.longitude)**2)
@@ -176,6 +180,12 @@ app.get('/', (req, res) => {
 
 
     var roads = {};
+    console.log("BB" + req.query.start);
+    console.log("CC" + req.query.end);
+    console.log("hi")
+    
+    roads[req.query.start] = {latitude: req.query.start_lat, longitude: req.query.start_lng, crime:null};
+    roads[req.query.end] = {latitude: req.query.end_lat, longitude: req.query.end_lng, crime:null};
     var names = [];
     var promises = [];
     for (var i = 0;i < distance; i+=0.013) {
