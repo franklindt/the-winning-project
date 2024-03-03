@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+
+
+<html>
+    <head>
+        <script>
+            var storage = {};
+            var count = 0;
+            function c(s) {
+                return document.getElementById(s);
+            }
+            function clear(s) {
+                c(s).value = "";
+            }
+            function a(b) {
+                alert(b);
+            }
+            function add(a, b) {
+                var f = false;
+                if (storage[a] != null) {
+                    f = true;
+                }
+                if (!f) {
+                    storage[a] = b;
+                    alert("Account created");
+                    count++;
+                } else {
+                    alert("User already exists");
+                }
+                c('user').value = "";
+                c('pass').value = "";
+            }
+            function login(a,b) {
+                var f = false;
+                if (storage[a] == b) {f=true;}
+                if (f) {
+                    alert("Welcome " + a);
+                } else {
+                    alert("Incorrect username or password");
+                }
+                c('user').value = "";
+                c('pass').value = "";
+            }
+            function lol() {
+                if (c('l').value != "") {
+                    var a = c('tab').insertRow();
+                    a.insertCell(0).innerHTML = c('l').value;
+                    clear('l');
+                }
+            }
+        </script>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body id="体">
+        <h1>Log In Page</h1>
+        <p id="stuff"></p>
+        <div>
+            <input placeholder="user" id="user"/>
+        </div>
+        <div>
+            <input type="password" placeholder="password" id="pass"/>
+        </div>
+        <button onclick="login(c('user').value, c('pass').value)">log in</button>
+        <button onclick="add(c('user').value, c('pass').value)">create account</button>
+        <div>
+            <input id="random" type="textarea" onkeyup="c('random').style.color=c('random').value; c('random').style.borderColor = c('random').value; c('体').style.backgroundColor = c('random').value"/>
+        </div>
+        <div>
+            <table id="tab">
+                
+            </table>
+            <input placeholder="type here" id="l"/>
+            <button onclick="lol()">submit</button>
+        </div>
+        <div>
+            <input id="imgFile" onkeyup="c('image').src = c('imgFile').value"/>
+            <img id="image"/>
+            <a href="https://www.google.com">abc</a>
+        </div>
+    </body>
+</html>

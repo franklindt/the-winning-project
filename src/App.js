@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { GoogleMap, LoadScript } from '@react-google-maps/api';
+import React, { useState } from 'react';
+import { GoogleMap, LoadScript , Polyline , StandaloneSearchBox, Marker } from '@react-google-maps/api';
 import './App.css';
 
 const containerStyle = {
@@ -8,8 +8,8 @@ const containerStyle = {
 };
 
 const center = {
-  lat: -3.745,
-  lng: -38.523
+  lat: 40.7128,
+  lng: -74.0060
 };
 
 function App() {
@@ -71,16 +71,16 @@ function dijkstra(graph, start, destination) {
             break;
         }
 
-        for (let neighbor in graph[currentNode]) {
-            const weight = graph[currentNode][neighbor];
-            const distance = distances[currentNode] + weight;
-
-            if (distance < distances[neighbor]) {
-                distances[neighbor] = distance;
-                previous[neighbor] = currentNode;
-                queue.enqueue(neighbor, distance);
-            }
-        }
+        for (let neighbor in graph[currentNode].neighbors) {
+          const weight = graph[currentNode].neighbors[neighbor].distance;
+          const distance = distances[currentNode] + weight;
+      
+          if (distance < distances[neighbor]) {
+              distances[neighbor] = distance;
+              previous[neighbor] = currentNode;
+              queue.enqueue(neighbor, distance);
+          }
+      }
     }
 
     return {
@@ -89,54 +89,144 @@ function dijkstra(graph, start, destination) {
     };
 }
 
-function getPath(previous, destination) {
-    const path = [];
-    let current = destination;
+function getPath(previous, destination, graph) {
+  const path = [];
+  let current = destination;
 
-    while (current !== null) {
-        path.unshift(current);
-        current = previous[current];
+  while (current !== null) {
+    if (graph[current]) {
+      path.unshift(graph[current].coordinates);
+      current = previous[current];
+    } else {
+      console.error(`Node ${current} is not in the graph`);
+      break;
     }
+  }
 
-    return path;
+  return path;
 }
 
 // Example usage
 const graph = {
-    A: { B: 5, C: 2 },
-    B: { A: 5, C: 1, D: 3 },
-    C: { A: 2, B: 1, D: 1 },
-    D: { B: 3, C: 1, E: 2 },
-    E: { D: 2 }
+  1: { 
+      coordinates: { lat: 40.7128, lng: -74.0060 },
+      neighbors: { 
+          2: { distance: 5, coordinates: { lat: 51.5074, lng: -0.1278 } }, 
+          3: { distance: 2, coordinates: { lat: 34.0522, lng: -118.2437 } } 
+      }
+  },
+  2: { 
+      coordinates: { lat: 51.5074, lng: -0.1278 },
+      neighbors: { 
+          1: { distance: 5, coordinates: { lat: 40.7128, lng: -74.0060 } }, 
+          3: { distance: 1, coordinates: { lat: 34.0522, lng: -118.2437 } }, 
+          4: { distance: 3, coordinates: { lat: 35.6895, lng: 139.6917 } } 
+      }
+  },
+  3: { 
+      coordinates: { lat: 34.0522, lng: -118.2437 },
+      neighbors: { 
+          1: { distance: 2, coordinates: { lat: 40.7128, lng: -74.0060 } }, 
+          2: { distance: 1, coordinates: { lat: 51.5074, lng: -0.1278 } }, 
+          4: { distance: 2, coordinates: { lat: 35.6895, lng: 139.6917 } } 
+      }
+  },
+  4: { 
+      coordinates: { lat: 35.6895, lng: 139.6917 },
+      neighbors: { 
+          2: { distance: 3, coordinates: { lat: 51.5074, lng: -0.1278 } }, 
+          3: { distance: 2, coordinates: { lat: 34.0522, lng: -118.2437 } }, 
+          5: { distance: 4, coordinates: { lat: 48.8566, lng: 2.3522 } } 
+      }
+  },
+  5: { 
+      coordinates: { lat: 48.8566, lng: 2.3522 },
+      neighbors: { 
+          4: { distance: 4, coordinates: { lat: 35.6895, lng: 139.6917 } } 
+      }
+  }
 };
 
-const startNode = 'A';
-const destinationNode = 'E';
+const startNode = 1;
+const destinationNode = 5;
 
 const result = dijkstra(graph, startNode, destinationNode);
-const shortestPath = getPath(result.previous, destinationNode);
-const totalWeight = result.distances[destinationNode];
+console.log('Result from dijkstra:', result);
 
+const shortestPath = getPath(result.previous, destinationNode, graph);
 console.log('Shortest Path:', shortestPath);
+
+const totalWeight = result.distances[destinationNode];
 console.log('Total Weight:', totalWeight);
 
+const pathCoordinates = shortestPath.map(node => ({ lat: node.lat, lng: node.lng }));
+
+const defaultCenter = { lat: 40.7128, lng: -74.0060 }; // Coordinates for New York City
 const containerStyle = {
   width: '100vw',
   height: '100vh'
 };
+const [startLocation, setStartLocation] = useState(null);
+const [endLocation, setEndLocation] = useState(null);
+const [markers, setMarkers] = useState([]);
+
+function onPlacesChanged(setLocation, setMarkers) {
+  return function() {
+    const places = this.getPlaces();
+    const location = {
+      lat: places[0].geometry.location.lat(),
+      lng: places[0].geometry.location.lng(),
+    };
+    console.log(location); // Log the selected place's details
+    setLocation(location);
+    setMarkers(prev => [...prev, location]);
+  };
+}
+
+function resetLocations() {
+  setStartLocation(null);
+  setEndLocation(null);
+  setMarkers([]);
+}
   return (
+    <div className='App'>
     <LoadScript
+      libraries={["places"]}
       googleMapsApiKey="AIzaSyA29P_0zghPIM_WkO10guIwiV1R9PdyDPA"
     >
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={center}
-        zoom={10}
-      >
-        { /* You can add markers or other components here */ }
-      </GoogleMap>
+      <div className = "controls">
+      <StandaloneSearchBox
+  onLoad={ref => ref.setBounds(new window.google.maps.LatLngBounds().extend(center))}
+  onPlacesChanged={onPlacesChanged(setStartLocation, setMarkers)}
+>
+  <input type="text" placeholder="Enter Starting Point" />
+</StandaloneSearchBox>
+<StandaloneSearchBox
+  onLoad={ref => ref.setBounds(new window.google.maps.LatLngBounds().extend(center))}
+  onPlacesChanged={onPlacesChanged(setEndLocation, setMarkers)}
+>
+  <input type="text" placeholder="Enter Ending Point" />
+</StandaloneSearchBox>
+<button onClick={resetLocations}>Reset</button>
+      </div>
+      <GoogleMap className="GoogleMap"
+  mapContainerStyle={containerStyle}
+  center={markers.length > 0 ? markers[0] : defaultCenter}
+  zoom={10}
+>
+  {markers.length >= 2 && (
+    <Polyline
+      path={markers}
+      options={{ strokeColor: "black", strokeWeight: "2", strokeOpacity: "1", geodesic: "true"}}
+    />
+  )}
+  {markers.map((marker, index) => (
+    <Marker key={index} position={marker} />
+  ))}
+</GoogleMap>
     </LoadScript>
-
+  </div>
+    
   );
 }
 
