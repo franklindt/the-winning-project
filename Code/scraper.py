@@ -1,17 +1,25 @@
 import json
 import requests
-from selenium import webdriver
+from bs4 import BeautifulSoup
+import re
+import collections
 
 
-#F1
+ 
 
-with open("File1.json", "r") as file1:
+with open("File1.json", "r") as file1:    #File 1
     data = json.load(file1)
 
+with open("temp.txt", "r") as files2:     #File 2
+    data2 = files2.read()
+
+
 features = data[0]['features']
-wanted_list = ['Neighbourhood', 'Offence_Summary']
+wanted_list = ['Intersection']
 
 unique = []
+unique2 = []
+unique2.append(data2)
 
 for feature in features:
     attributes = feature['attributes']
@@ -20,64 +28,19 @@ for feature in features:
     if wanted_data not in unique:
         unique.append(wanted_data)
 
+
+for line in unique :
+    print(line)        
+
+"""""
+for i in range(len(unique2)) :
+    unique2[i] = {'Neighbourhood' : unique2[i]}
+"""
+     
+  
 #for line in unique :
     #print(f"{line}\n")
 
- 
- 
+#with open("File1.json", "w") as file1 : <--- Apply the change and close the file
+        #json.dump(unique, file1)
 
-#F2
-    
-link = "https://experience.arcgis.com/experience/0bd1487a428b44c5ae29915cdca28685/page/Page/?views=Query"
-response = requests.get(link)
-
-status = "Good" if response.status_code == 200 else "Problem with link 'Shooting' "
-
-if status == "Good" :
-
-     
-
-
-
-
-"""import json
-import re
-from selenium import webdriver 
-import requests 
-from sys import exit
-import pandas as pd
-
-
-#F1
-with open("File1.json", "r") as file1 : 
-    cont = file1.read()
-
-
-data = json.loads(cont)
-data = data[0]
-data = data['features']
-
-wanted_list = ['Neighbourhood', 'Offence_Summary']
-
-# actual format : data[0]['attributes']
-
-for i in range(len(data)) : # removing the "geometry" key
-    data[i] = data[i]["attributes"]
-    i+= 1
- 
-
-# actual format : data[0]['Neighbourhood'] 
- 
-for i in range(len(data)) :
-    data[i] = {key : data[i][key] for key in  wanted_list}
-    i+= 1
-
-format = json.dumps(data)
-
-loaded = json.loads(format)
-
-unique = []
-
-for line in loaded :
-    if not line in unique :
-        unique.append(line)"""
