@@ -20,13 +20,6 @@ const port = 3000
 // }
 
 app.get('/', (req, res) => {
-  var start = {longitude: req.query.start_lng,latitude: req.query.start_lat};
-  var destination = {longitude: req.query.dest_lng, latitude: req.query.dest_lat};
-  console.log(start.longitude + "," + start.latitude + "\n" + destination.longitude + "," + destination.latitude);
-  res.send(200);
-})
-
-app.get('/bah', (req, res) => {
   var start, end;
   axios({
     method:"get",
