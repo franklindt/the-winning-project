@@ -1,9 +1,12 @@
 from flask import Flask , jsonify
+from flask_cors import CORS
+
 import json
 
 
 
 app  = Flask(__name__)
+CORS(app)
 app.config ['DEBUG']=True
 
 @app.route('/')
@@ -16,9 +19,6 @@ def get_json():
     with open("Static/File1.json") as file :
         data = json.load(file)
         return jsonify(data)
-
-
-
 if __name__ == "__main__ " :
     app.run(debug=True)
 
