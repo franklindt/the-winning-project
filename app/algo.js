@@ -1,33 +1,4 @@
-import React, { useRef } from 'react';
-import { GoogleMap, LoadScript } from '@react-google-maps/api';
-import './App.css';
-
-const containerStyle = {
-  width: '400px',
-  height: '400px'
-};
-
-const center = {
-  lat: -3.745,
-  lng: -38.523
-};
-
-function App() {
-  /*const ref = React.useRef();
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: 'AIzaSyA29P_0zghPIM_WkO10guIwiV1R9PdyDPA',
-    libraries,
-  });
-
-  if (loadError) {
-    return <div>Error loading maps</div>;
-  }
-  if (!isLoaded) {
-    return <div>Loading maps</div>;
-  }*/
-
-
-  class PriorityQueue {
+class PriorityQueue {
     constructor() {
         this.queue = [];
     }
@@ -119,25 +90,3 @@ const totalWeight = result.distances[destinationNode];
 
 console.log('Shortest Path:', shortestPath);
 console.log('Total Weight:', totalWeight);
-
-const containerStyle = {
-  width: '100vw',
-  height: '100vh'
-};
-  return (
-    <LoadScript
-      googleMapsApiKey="AIzaSyA29P_0zghPIM_WkO10guIwiV1R9PdyDPA"
-    >
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={center}
-        zoom={10}
-      >
-        { /* You can add markers or other components here */ }
-      </GoogleMap>
-    </LoadScript>
-
-  );
-}
-
-export default App;
