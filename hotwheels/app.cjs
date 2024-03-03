@@ -109,10 +109,11 @@ app.get('/named', (req, res) => {
 
 
 app.get('/', (req, res) => {
-    start = {latitude: req.query.start.latitude, longitude: req.query.start.longitude};
-    end = {latitude: req.query.start.latitude, longitude: req.query.start.longitude};
+    start = {latitude: parseFloat(req.query.start_lat), longitude: parseFloat(req.query.start_lng)};
+    end = {latitude: parseFloat(req.query.end_lat), longitude: parseFloat(req.query.end_lng)};
 
-
+    console.log(start)
+    console.log(end)
 
 
     var distance = Math.sqrt((start.latitude-end.latitude)**2+(start.longitude-end.longitude)**2)
@@ -122,7 +123,8 @@ app.get('/', (req, res) => {
 
     var roads = {};
     var promises = [];
-
+    console.log(distance)
+    console.log(process.env.GEONAMES_USERNAME)
     for (var i = 0;i < distance; i+=0.013) {
       // console.log(start.latitude+(i*Math.sqrt(1-((end.longitude-start.longitude)/distance)**2)));
       promises.push(
@@ -135,7 +137,7 @@ app.get('/', (req, res) => {
             username: process.env.GEONAMES_USERNAME
           }
         }).then((response) => {
-          console.log(response.data.streetSegment)
+          console.log(response.data)
           if (response.data.streetSegment != null && response.data.streetSegment != undefined) {
             for (var j = 0; j < response.data.streetSegment.length; j++) {
               exists = false;
@@ -167,11 +169,6 @@ app.get('/', (req, res) => {
 
 
 })
-
-app.listen(port, () => {
-  console.log(`hotwheels listening on port ${port}`)
-})
-
 
 
 
